@@ -66,6 +66,7 @@ export default function DiagramCanvas() {
 
       const style = NODE_STYLES[node.type];
 
+      // Create the geo shape (rectangle)
       shapesToCreate.push({
         id: shapeId,
         type: "geo",
@@ -77,8 +78,24 @@ export default function DiagramCanvas() {
           h: style.height,
           color: getColorFromHex(style.fill),
           fill: "solid",
+          size: "m",
+        },
+      });
+
+      // Create a text shape for the label
+      const textId = createShapeId();
+      shapesToCreate.push({
+        id: textId,
+        type: "text",
+        x: node.x - style.width / 2 + 10,
+        y: node.y - 10,
+        props: {
           text: node.label,
           size: "m",
+          color: "black",
+          w: style.width - 20,
+          autoSize: false,
+          textAlign: "middle",
         },
       });
     });
