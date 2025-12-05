@@ -103,39 +103,52 @@ export default function VoiceControls({
 
   // Handle messages from OpenAI Realtime API
   const handleRealtimeMessage = (message: any) => {
-    console.log("Realtime message:", message.type);
+    // Log ALL messages for debugging
+    if (message.type !== "input_audio_buffer.speech_started" &&
+        message.type !== "input_audio_buffer.speech_stopped") {
+      console.log("📥 Realtime message:", message.type, message);
+    }
 
     switch (message.type) {
       case "session.created":
       case "session.updated":
-        console.log("Session ready");
+        console.log("✅ Session ready");
         break;
 
       case "conversation.item.input_audio_transcription.completed":
         // User's speech transcription
+        console.log("📝 Transcription:", message.transcript);
         setTranscript((prev) => prev + " " + message.transcript);
         break;
 
       case "response.function_call_arguments.delta":
         // Function arguments streaming
-        console.log("Function args delta:", message.delta);
+        console.log("🔧 Function args delta:", message.delta);
         break;
 
       case "response.function_call_arguments.done":
         // Complete function call received
+        console.log("✅ Function call done:", message.name);
         handleFunctionCall(message);
         break;
 
       case "response.done":
-        console.log("Response completed");
+        console.log("✅ Response completed");
         break;
 
       case "error":
-        console.error("Realtime API error - Full message:", message);
-        console.error("Error details:", message.error);
-        const errorMsg = message.error?.message || message.error?.type || "Unknown error";
+        console.error("❌ Realtime API error - Full message:", JSON.stringify(message, null, 2));
+        console.error("❌ Error object:", message.error);
+        console.error("❌ Error type:", typeof message.error);
+        const errorMsg = message.error?.message || message.error?.type || message.error?.code || "Unknown error";
         setError(`API Error: ${errorMsg}`);
         break;
+
+      default:
+        // Log unknown message types
+        if (!message.type.includes("audio")) {
+          console.log("⚠️ Unknown message type:", message.type);
+        }
     }
   };
 
