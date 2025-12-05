@@ -66,7 +66,8 @@ export default function DiagramCanvas() {
 
       const style = NODE_STYLES[node.type];
 
-      // Create the geo shape (rectangle)
+      // Create the geo shape (rectangle) without text for now
+      // TODO: Figure out correct API for adding text in Tldraw v2.4+
       shapesToCreate.push({
         id: shapeId,
         type: "geo",
@@ -82,22 +83,9 @@ export default function DiagramCanvas() {
         },
       });
 
-      // Create a text shape for the label
-      const textId = createShapeId();
-      shapesToCreate.push({
-        id: textId,
-        type: "text",
-        x: node.x - style.width / 2 + 10,
-        y: node.y - 10,
-        props: {
-          text: node.label,
-          size: "m",
-          color: "black",
-          w: style.width - 20,
-          autoSize: false,
-          textAlign: "middle",
-        },
-      });
+      // Store node label for future reference
+      // We'll add text support once we figure out the correct Tldraw API
+      console.log(`Node ${node.id}: ${node.label}`);
     });
 
     // Prepare arrow shapes for edges
