@@ -131,8 +131,10 @@ export default function VoiceControls({
         break;
 
       case "error":
-        console.error("Realtime API error:", message.error);
-        setError(`API Error: ${message.error.message}`);
+        console.error("Realtime API error - Full message:", message);
+        console.error("Error details:", message.error);
+        const errorMsg = message.error?.message || message.error?.type || "Unknown error";
+        setError(`API Error: ${errorMsg}`);
         break;
     }
   };
