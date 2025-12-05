@@ -55,73 +55,76 @@ export default function DiagramCanvas() {
     // Clear existing shapes (optional - comment out to preserve)
     // editor.deleteShapes(editor.getCurrentPageShapeIds());
 
-    // Create shapes in a batch for undo/redo
-    editor.batch(() => {
-      const nodeShapeMap = new Map<string, string>();
+    // Prepare all shapes to create
+    const shapesToCreate: any[] = [];
+    const nodeShapeMap = new Map<string, string>();
 
-      // Create node shapes
-      graph.nodes.forEach((node: PositionedNode) => {
-        const shapeId = createShapeId();
-        nodeShapeMap.set(node.id, shapeId);
+    // Prepare node shapes
+    graph.nodes.forEach((node: PositionedNode) => {
+      const shapeId = createShapeId();
+      nodeShapeMap.set(node.id, shapeId);
 
-        const style = NODE_STYLES[node.type];
+      const style = NODE_STYLES[node.type];
 
-        // Create rectangle shape
-        editor.createShape({
-          id: shapeId,
-          type: "geo",
-          x: node.x - style.width / 2,
-          y: node.y - style.height / 2,
-          props: {
-            geo: "rectangle",
-            w: style.width,
-            h: style.height,
-            color: getColorFromHex(style.fill),
-            fill: "solid",
-            text: node.label,
-            size: "m",
-          },
-        });
+      shapesToCreate.push({
+        id: shapeId,
+        type: "geo",
+        x: node.x - style.width / 2,
+        y: node.y - style.height / 2,
+        props: {
+          geo: "rectangle",
+          w: style.width,
+          h: style.height,
+          color: getColorFromHex(style.fill),
+          fill: "solid",
+          text: node.label,
+          size: "m",
+        },
       });
-
-      // Create arrow shapes for edges
-      graph.edges.forEach((edge) => {
-        const fromShapeId = nodeShapeMap.get(edge.from);
-        const toShapeId = nodeShapeMap.get(edge.to);
-
-        if (!fromShapeId || !toShapeId) {
-          console.warn(`Missing shape for edge ${edge.id}`);
-          return;
-        }
-
-        const arrowId = createShapeId();
-
-        editor.createShape({
-          id: arrowId,
-          type: "arrow",
-          props: {
-            start: {
-              type: "binding",
-              boundShapeId: fromShapeId,
-              normalizedAnchor: { x: 0.5, y: 0.5 },
-              isExact: false,
-            },
-            end: {
-              type: "binding",
-              boundShapeId: toShapeId,
-              normalizedAnchor: { x: 0.5, y: 0.5 },
-              isExact: false,
-            },
-            text: edge.label || "",
-            arrowheadEnd: edge.direction === "bi" ? "arrow" : "arrow",
-            arrowheadStart: edge.direction === "bi" ? "arrow" : "none",
-          },
-        });
-      });
-
-      // Zoom to fit
-      editor.zoomToFit({ animation: { duration: 300 } });
     });
+
+    // Prepare arrow shapes for edges
+    graph.edges.forEach((edge) => {
+      const fromShapeId = nodeShapeMap.get(edge.from);
+      const toShapeId = nodeShapeMap.get(edge.to);
+
+      if (!fromShapeId || !toShapeId) {
+        console.warn(`Missing shape for edge ${edge.id}`);
+        return;
+      }
+
+      const arrowId = createShapeId();
+
+      shapesToCreate.push({
+        id: arrowId,
+        type: "arrow",
+        props: {
+          start: {
+            type: "binding",
+            boundShapeId: fromShapeId,
+            normalizedAnchor: { x: 0.5, y: 0.5 },
+            isExact: false,
+          },
+          end: {
+            type: "binding",
+            boundShapeId: toShapeId,
+            normalizedAnchor: { x: 0.5, y: 0.5 },
+            isExact: false,
+          },
+          text: edge.label || "",
+          arrowheadEnd: edge.direction === "bi" ? "arrow" : "arrow",
+          arrowheadStart: edge.direction === "bi" ? "arrow" : "none",
+        },
+      });
+    });
+
+    // Create all shapes at once (undo-safe)
+    editor.createShapes(shapesToCreate);
+
+    // Zoom to fit after a short delay to ensure shapes are rendered
+    setTimeout(() => {
+      editor.zoomToFit({ animation: { duration: 300 } });
+    }, 100);
   };
 
   // Helper to convert hex color to Tldraw color

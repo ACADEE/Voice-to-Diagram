@@ -13,24 +13,24 @@
   "dependencies": {
     "@tldraw/tldraw": "^2.4.0",
     "dagre": "^0.8.5",
-    "next": "^14.2.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/dagre": "^0.7.52",
     "@types/node": "^20.0.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/ws": "^8.5.0",
     "autoprefixer": "^10.4.0",
     "concurrently": "^8.2.2",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "^14.2.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.6.0"
   }
 }
