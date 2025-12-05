@@ -52,14 +52,27 @@ export default function VoiceControls({
         }
       };
 
-      ws.onerror = (err) => {
-        console.error("WebSocket error:", err);
-        setError("Connection error");
+      ws.onerror = (event) => {
+        console.error("WebSocket error:", event);
+        setError("Connection error - check console");
         setStatus("error");
       };
 
-      ws.onclose = () => {
-        console.log("Disconnected from relay");
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        });
+
+        if (event.code === 1006) {
+          setError("Connection lost - abnormal closure");
+        } else if (event.code === 1008) {
+          setError("Policy violation - check API key");
+        } else if (event.reason) {
+          setError(`Disconnected: ${event.reason}`);
+        }
+
         setStatus("disconnected");
         stopRecording();
       };
@@ -170,7 +183,14 @@ export default function VoiceControls({
 
   // Start recording microphone
   const startRecording = async () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setError("WebSocket not connected");
+      return;
+    }
+
     try {
+      console.log("Requesting microphone access...");
+
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -178,9 +198,11 @@ export default function VoiceControls({
           sampleRate: 24000,
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true,
         },
       });
 
+      console.log("Microphone access granted");
       mediaStreamRef.current = stream;
 
       // Create audio context
@@ -189,28 +211,41 @@ export default function VoiceControls({
 
       const source = audioContext.createMediaStreamSource(stream);
 
-      // Create processor for PCM16 audio
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      // Create processor for PCM16 audio (buffer size 2048 for better performance)
+      const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
+      let isProcessing = false;
+
       processor.onaudioprocess = (e) => {
+        // Prevent overlapping processing
+        if (isProcessing) return;
+
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          const inputData = e.inputBuffer.getChannelData(0);
+          isProcessing = true;
 
-          // Convert Float32 to Int16 (PCM16)
-          const pcm16 = new Int16Array(inputData.length);
-          for (let i = 0; i < inputData.length; i++) {
-            const s = Math.max(-1, Math.min(1, inputData[i]));
-            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          try {
+            const inputData = e.inputBuffer.getChannelData(0);
+
+            // Convert Float32 to Int16 (PCM16)
+            const pcm16 = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]));
+              pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+            }
+
+            // Send audio to Realtime API
+            const audioMessage = {
+              type: "input_audio_buffer.append",
+              audio: arrayBufferToBase64(pcm16.buffer),
+            };
+
+            wsRef.current.send(JSON.stringify(audioMessage));
+          } catch (err) {
+            console.error("Error processing audio:", err);
+          } finally {
+            isProcessing = false;
           }
-
-          // Send audio to Realtime API
-          const audioMessage = {
-            type: "input_audio_buffer.append",
-            audio: arrayBufferToBase64(pcm16.buffer),
-          };
-
-          wsRef.current.send(JSON.stringify(audioMessage));
         }
       };
 
@@ -218,10 +253,10 @@ export default function VoiceControls({
       processor.connect(audioContext.destination);
 
       setIsRecording(true);
-      console.log("Recording started");
+      console.log("Recording started successfully");
     } catch (err) {
       console.error("Failed to start recording:", err);
-      setError("Microphone access denied");
+      setError(`Microphone error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 

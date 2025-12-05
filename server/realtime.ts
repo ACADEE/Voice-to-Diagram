@@ -171,18 +171,36 @@ wss.on("connection", (clientWs: WebSocket, req: http.IncomingMessage) => {
 
   openaiWs.on("error", (error: Error) => {
     console.error("OpenAI WebSocket error:", error);
+    console.error("Error details:", error.message);
     clientWs.close(1011, "OpenAI connection error");
   });
 
   openaiWs.on("close", (code: number, reason: Buffer) => {
-    console.log(`OpenAI disconnected: ${code} ${reason.toString()}`);
+    console.log(`OpenAI disconnected: code=${code} reason=${reason.toString()}`);
+    if (code === 1008) {
+      console.error("Policy violation - possible API key issue");
+    } else if (code === 1006) {
+      console.error("Abnormal closure - connection lost");
+    }
     clientWs.close(code, reason.toString());
   });
 
   // Forward client messages to OpenAI
   clientWs.on("message", (data: Buffer) => {
     if (isOpenAIConnected && openaiWs.readyState === WebSocket.OPEN) {
-      openaiWs.send(data);
+      try {
+        // Log message type for debugging (without logging full audio data)
+        const message = JSON.parse(data.toString());
+        if (message.type !== "input_audio_buffer.append") {
+          console.log("Client → OpenAI:", message.type);
+        }
+        openaiWs.send(data);
+      } catch (err) {
+        // If not JSON, just forward as-is
+        openaiWs.send(data);
+      }
+    } else {
+      console.warn("Cannot forward message - OpenAI not connected");
     }
   });
 
