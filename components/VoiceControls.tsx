@@ -43,12 +43,19 @@ export default function VoiceControls({
         setStatus("connected");
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          const message = JSON.parse(event.data);
+          let data = event.data;
+
+          // Handle Blob data (convert to text first)
+          if (data instanceof Blob) {
+            data = await data.text();
+          }
+
+          const message = JSON.parse(data);
           handleRealtimeMessage(message);
         } catch (err) {
-          console.error("Failed to parse message:", err);
+          console.error("Failed to parse message:", err, "Data:", event.data);
         }
       };
 

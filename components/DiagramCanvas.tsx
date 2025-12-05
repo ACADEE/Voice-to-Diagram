@@ -98,6 +98,8 @@ export default function DiagramCanvas() {
       shapesToCreate.push({
         id: arrowId,
         type: "arrow",
+        x: 0,
+        y: 0,
         props: {
           start: {
             type: "binding",
